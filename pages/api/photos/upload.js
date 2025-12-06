@@ -2,9 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 
-export const config = {
-  api: { bodyParser: false },
-};
+export const config = { api: { bodyParser: false } };
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,17 +13,22 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const form = new IncomingForm();
+
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    const file = files.file;
-    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+    const fileObj = Array.isArray(files.file) ? files.file[0] : files.file;
+    const filePath = fileObj?.filepath;
+    const fileName = fileObj?.originalFilename;
+
+    if (!filePath || !fileName) return res.status(400).json({ error: 'File path or name not found' });
 
     try {
-      const fileData = fs.readFileSync(file.filepath);
+      const fileData = fs.readFileSync(filePath);
+
       const { data, error } = await supabase.storage
-        .from('myphotos')   // your bucket name
-        .upload(`photos/${file.originalFilename}`, fileData, {
+        .from('myphotos')
+        .upload(`photos/${fileName}`, fileData, {
           cacheControl: '3600',
           upsert: true,
         });
