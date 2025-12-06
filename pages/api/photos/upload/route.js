@@ -22,7 +22,7 @@ export async function POST(req) {
 
     const { data, error } = await supabase
       .storage
-      .from('myphotos')
+      .from('fruits')
       .upload(`uploads/${file.name}`, buffer, {
         contentType: file.type || "application/octet-stream",
         upsert: false,
