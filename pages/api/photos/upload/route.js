@@ -1,39 +1,39 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const config = {
-  runtime: "nodejs", // REQUIRED for file uploads
+  api: {
+    bodyParser: false, // we will handle the stream manually
+  },
 };
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export async function POST(req) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file');
+    // Read raw body as ArrayBuffer
+    const body = await req.arrayBuffer();
+    const fileName = req.headers.get('x-file-name');
 
-    if (!file) {
-      return Response.json({ error: "No file uploaded" }, { status: 400 });
+    if (!fileName) {
+      return new Response(JSON.stringify({ error: 'Missing file name header' }), { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    const { data, error } = await supabase
-      .storage
-      .from('fruits')
-      .upload(`uploads/${file.name}`, buffer, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
+    const { data, error } = await supabase.storage
+      .from('myphotos')
+      .upload(`photos/${fileName}`, new Uint8Array(body), {
+        cacheControl: '3600',
+        upsert: true,
       });
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw error;
 
-    return Response.json({ data });
-  } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    const { publicUrl } = supabase.storage.from('myphotos').getPublicUrl(data.path);
+
+    return new Response(JSON.stringify({ url: publicUrl }), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
