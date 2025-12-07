@@ -8,7 +8,7 @@ const fetcher = (url) => fetch(url).then(res => res.json())
 
 export default function TextTables() {
   const [text, setText] = useState('')
-  const tableName = 'student' // Change this to test any table
+  const tableName = 'fruits' // Change this to test any table
   const apiUrl = `/api/db-test?table=${tableName}`
 
   // SWR hook
