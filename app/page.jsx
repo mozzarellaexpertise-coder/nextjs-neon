@@ -1,47 +1,70 @@
 'use client'
 
-import useSWR from 'swr'
 import { useState } from 'react'
+import useSWR from 'swr'
 
-// SWR fetcher
-const fetcher = (url) => fetch(url).then(res => res.json())
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-export default function TextTables() {
+export default function Page() {
+  // --- Text Table State ---
   const [text, setText] = useState('')
-  const tableName = 'fruits' // Change this to test any table
+  const tableName = 'fruits'
   const apiUrl = `/api/db-test?table=${tableName}`
-
-  // SWR hook
   const { data: rows, error, mutate } = useSWR(apiUrl, fetcher)
 
-  // Insert new row
+  // --- File Upload State ---
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([])
+
+  // --- Insert new row ---
   async function addRow() {
     if (!text) return alert('Type something first!')
 
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
     })
 
     const result = await res.json()
 
-    if (result.error) {
-      alert(result.error)
-    } else {
+    if (result.error) alert(result.error)
+    else {
       setText('')
       mutate() // refresh the table
     }
   }
 
-  // Loading & error states
+  // --- Upload file ---
+  async function uploadFile() {
+    if (!file) return alert('Choose a file first!')
+
+    const uploadUrl = '/api/photos/upload'
+    const formData = new FormData()
+    formData.append('file', file, file.name)
+
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+    })
+
+    const result = await res.json()
+    if (result.error) alert(result.error)
+    else {
+      setUploadedFiles((prev) => [...prev, result.url])
+      setFile(null)
+    }
+  }
+
+  // --- Loading & error states ---
   if (error) return <div>Error loading data: {error.message}</div>
   if (!rows) return <div>Loading...</div>
 
   return (
     <main style={{ padding: 40 }}>
-      <h1>🧪 Supabase Text Table Test</h1>
+      <h1>🧪 Supabase Text Table + File Upload Test</h1>
 
+      {/* --- Text Table --- */}
       <div style={{ marginBottom: 20 }}>
         <input
           value={text}
@@ -56,13 +79,38 @@ export default function TextTables() {
 
       <ul>
         {rows.length > 0 ? (
-          rows.map((r) => (
-           <li key={r.id}>{r.name}</li>
-          ))
+          rows.map((r) => <li key={r.id}>{r.name}</li>)
         ) : (
           <li>No data found</li>
         )}
       </ul>
+
+      <hr style={{ margin: '40px 0' }} />
+
+      {/* --- File Uploader --- */}
+      <div style={{ marginBottom: 20 }}>
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+        />
+        <button onClick={uploadFile} style={{ marginLeft: 10, padding: 6 }}>
+          Upload
+        </button>
+      </div>
+
+      <div>
+        {uploadedFiles.length > 0 && (
+          <ul>
+            {uploadedFiles.map((url, i) => (
+              <li key={i}>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  {url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </main>
   )
 }
