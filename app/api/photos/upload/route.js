@@ -1,16 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const config = { api: { bodyParser: false } }
-
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 export async function POST(req) {
   try {
     const body = await req.arrayBuffer()
-    const fileName = req.headers.get('x-file-name') || 'upload-file'
+    const fileName = req.headers.get('x-file-name')?.replace(/[^a-zA-Z0-9_\-\.]/g, '_') || 'upload-file'
 
     const { data, error } = await supabase.storage
       .from('myphotos')
