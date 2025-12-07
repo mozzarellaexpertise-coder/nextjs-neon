@@ -1,24 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 
-export const config = {
-  api: {
-    bodyParser: false, // we will handle the stream manually
-  },
-};
+export const runtime = 'nodejs'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  return createClient(url, key)
+}
 
 export async function POST(req) {
   try {
-    // Read raw body as ArrayBuffer
-    const body = await req.arrayBuffer();
-    const fileName = req.headers.get('x-file-name');
+    const supabase = getSupabase()
+
+    const body = await req.arrayBuffer()
+    const fileName = req.headers.get('x-file-name')
 
     if (!fileName) {
-      return new Response(JSON.stringify({ error: 'Missing file name header' }), { status: 400 });
+      return new Response(
+        JSON.stringify({ error: 'Missing x-file-name header' }),
+        { status: 400 }
+      )
     }
 
     const { data, error } = await supabase.storage
@@ -26,14 +32,22 @@ export async function POST(req) {
       .upload(`photos/${fileName}`, new Uint8Array(body), {
         cacheControl: '3600',
         upsert: true,
-      });
+        contentType: req.headers.get('content-type') || 'application/octet-stream'
+      })
 
-    if (error) throw error;
+    if (error) throw error
 
-    const { publicUrl } = supabase.storage.from('myphotos').getPublicUrl(data.path);
+    const { data: publicData } = supabase.storage
+      .from('myphotos')
+      .getPublicUrl(data.path)
 
-    return new Response(JSON.stringify({ url: publicUrl }), { status: 200 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(
+      JSON.stringify({ url: publicData.publicUrl }),
+      { status: 200 }
+    )
+
+  } catch (err) {
+    console.error('Upload ERROR:', err.message)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
 }

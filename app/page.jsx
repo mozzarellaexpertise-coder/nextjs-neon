@@ -57,7 +57,7 @@ export default function TextTables() {
       <ul>
         {rows.length > 0 ? (
           rows.map((r) => (
-            <li key={r.id}>{r.text ?? '[No Text]'}</li>
+           <li key={r.id}>{r.name}</li>
           ))
         ) : (
           <li>No data found</li>
