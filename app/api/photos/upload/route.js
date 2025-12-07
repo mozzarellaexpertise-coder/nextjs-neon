@@ -7,13 +7,6 @@ async function uploadToCloudStorage(buffer, filename) {
   return `https://beymgycboeffvzuhracq.supabase.co/storage/v1/object/public/myphotos/${filename}`; 
 }
 
-// Set this to false for file uploads so Next.js doesn't try to parse the body itself
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export async function POST(request) {
   try {
     // ** FIX #2: Use request.formData() to easily read the file **
