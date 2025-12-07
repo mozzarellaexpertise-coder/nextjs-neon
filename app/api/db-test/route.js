@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabaseServer'
 
 export async function GET() {
   const { data, error } = await supabaseServer
-    .from('fruits')   // 👈 change this to your text-only table name
+    .from('student')   // 👈 change this to your text-only table name
     .select('*')
     .limit(10)
 
@@ -17,7 +17,7 @@ export async function POST(req) {
   const body = await req.json()
 
   const { data, error } = await supabaseServer
-    .from('fruits')   // 👈 same table name
+    .from('student')   // 👈 same table name
     .insert([
       { name: body.text }
     ])
