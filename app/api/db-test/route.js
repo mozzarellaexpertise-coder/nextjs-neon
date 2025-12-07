@@ -1,30 +1,44 @@
-import { supabaseServer } from '@/lib/supabaseServer'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET() {
-  const { data, error } = await supabaseServer
-    .from('student')   // 👈 change this to your text-only table name
-    .select('*')
-    .limit(10)
+export async function GET(req) {
+  try {
+    const supabaseServer = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+    const table = new URL(req.url).searchParams.get('table')
+    if (!table) throw new Error('Missing table query parameter')
+
+    const { data, error } = await supabaseServer.from(table).select('*').limit(50)
+    if (error) throw error
+
+    return new Response(JSON.stringify(data), { status: 200 })
+  } catch (err) {
+    console.error('GET /api/db-test ERROR:', err.message)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
-
-  return new Response(JSON.stringify(data), { status: 200 })
 }
 
 export async function POST(req) {
-  const body = await req.json()
+  try {
+    const supabaseServer = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
 
-  const { data, error } = await supabaseServer
-    .from('student')   // 👈 same table name
-    .insert([
-      { name: body.text }
-    ])
+    const table = new URL(req.url).searchParams.get('table')
+    if (!table) throw new Error('Missing table query parameter')
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+    const body = await req.json()
+    if (!body.text) throw new Error('Missing text in request body')
+
+    const { data, error } = await supabaseServer.from(table).insert([{ text: body.text }])
+    if (error) throw error
+
+    return new Response(JSON.stringify(data), { status: 200 })
+  } catch (err) {
+    console.error('POST /api/db-test ERROR:', err.message)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
-
-  return new Response(JSON.stringify(data), { status: 200 })
 }
