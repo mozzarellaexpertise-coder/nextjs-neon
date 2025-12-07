@@ -1,47 +1,28 @@
-import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js'
 
-// Placeholder function - REPLACE THIS with your actual cloud storage logic (S3, etc.)
-async function uploadToCloudStorage(buffer, filename) {
-  // Simulating an external upload and returning a public URL
-  console.log(`Ready to upload ${filename} to cloud storage.`);
-  return `https://beymgycboeffvzuhracq.supabase.co/storage/v1/object/public/myphotos/${filename}`; 
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    // ** FIX #2: Use request.formData() to easily read the file **
-    const formData = await request.formData();
-    
-    // Get the file object using the key 'photo' from the client-side code
-    const file = formData.get('photo');
+    const body = await req.arrayBuffer()
+    const fileName = req.headers
+      .get('x-file-name')
+      ?.replace(/[^a-zA-Z0-9_\-\.]/g, '_') || `upload-${Date.now()}`
 
-    if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: 'No file received or file key is wrong.' }, { status: 400 });
-    }
+    const { data, error } = await supabase.storage
+      .from('myphotos')
+      .upload(`photos/${fileName}`, new Uint8Array(body), { cacheControl: '3600', upsert: true })
 
-    // Convert the File object into a Buffer for server-side processing
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    // The filename comes directly from the File object
-    const filename = file.name;
+    if (error) throw error
+    if (!data || !data.path) throw new Error('Upload failed: no path returned')
 
-    if (buffer.length === 0) {
-      return NextResponse.json({ error: 'File is empty' }, { status: 400 });
-    }
+    const { publicUrl } = supabase.storage.from('myphotos').getPublicUrl(data.path)
 
-    // 
-    // !!! IMPORTANT: The real solution for your original error is fixing your deployment !!!
-    // This code is what SHOULD run once the deployment is correct.
-    //
-
-    const uploadedUrl = await uploadToCloudStorage(buffer, filename);
-
-    // Send back the success response
-    return NextResponse.json({ url: uploadedUrl }, { status: 200 });
-
-  } catch (error) {
-    console.error('File Upload Server Error:', error);
-    return NextResponse.json({ error: 'Failed to process file upload.' }, { status: 500 });
+    return new Response(JSON.stringify({ url: publicUrl }), { status: 200 })
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
 }
