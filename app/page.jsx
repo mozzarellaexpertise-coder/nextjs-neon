@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+// SWR fetcher (plain JS, no TS types)
+const fetcher = (url) => fetch(url).then(res => res.json())
 
 export default function Page() {
   // --- Text Table State ---
@@ -13,8 +14,8 @@ export default function Page() {
   const { data: rows, error, mutate } = useSWR(apiUrl, fetcher)
 
   // --- File Upload State ---
-  const [file, setFile] = useState<File | null>(null)
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([])
+  const [file, setFile] = useState(null)
+  const [uploadedFiles, setUploadedFiles] = useState([])
 
   // --- Insert new row ---
   async function addRow() {
