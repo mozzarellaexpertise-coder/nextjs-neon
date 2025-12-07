@@ -16,17 +16,24 @@ export default function FileUploader() {
     setUrl('')
 
     try {
+      // ** FIX #1: Use FormData for standard file uploads **
+      const formData = new FormData()
+      // Append the file using the key 'photo' (Server looks for this key)
+      formData.append('photo', file, file.name) 
+
       const res = await fetch('/api/photos/upload', {
         method: 'POST',
-        headers: {
-          'x-file-name': file.name
-        },
-        body: file
+        // NOTE: No need for 'Content-Type' or 'x-file-name' headers here!
+        body: formData // Send the FormData payload
       })
 
       const data = await res.json()
-      if (data.error) setError(data.error)
-      else setUrl(data.url)
+      if (!res.ok) {
+        // Handle non-200 responses better
+        throw new Error(data.error || 'Server error during upload.')
+      }
+
+      setUrl(data.url)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -49,7 +56,7 @@ export default function FileUploader() {
         </div>
       )}
 
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-red-500">Upload Failed: {error}</p>}
     </div>
   )
 }
