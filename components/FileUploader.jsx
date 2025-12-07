@@ -27,7 +27,14 @@ export default function FileUploader() {
       if (data.error) {
         setResult(`Upload Failed: ${data.error}`)
       } else {
-        setResult(`Upload Successful! URL: ${data.url}`)
+        setResult(
+          <span>
+            Upload Successful!{' '}
+            <a href={data.url} target="_blank" rel="noopener noreferrer">
+              View File
+            </a>
+          </span>
+        )
       }
     } catch (err) {
       setResult(`Upload Failed: ${err.message}`)
@@ -42,7 +49,7 @@ export default function FileUploader() {
       <button onClick={handleUpload} disabled={uploading}>
         {uploading ? 'Uploading...' : 'Upload'}
       </button>
-      {result && <p>{result}</p>}
+      <div>{result}</div>
     </div>
   )
 }
