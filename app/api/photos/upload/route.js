@@ -19,9 +19,14 @@ export async function POST(req) {
     if (error) throw error
     if (!data || !data.path) throw new Error('Upload failed: no path returned')
 
-    const { publicUrl } = supabase.storage.from('myphotos').getPublicUrl(data.path)
+    // Corrected getPublicUrl
+    const { data: publicData, error: publicError } = supabase.storage
+      .from('myphotos')
+      .getPublicUrl(data.path)
 
-    return new Response(JSON.stringify({ url: publicUrl }), { status: 200 })
+    if (publicError) throw publicError
+
+    return new Response(JSON.stringify({ url: publicData.publicUrl }), { status: 200 })
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
