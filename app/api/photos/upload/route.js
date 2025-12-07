@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Check server environment variables
+export const runtime = 'nodejs'; // <-- Add this
+
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing!')
 }
@@ -12,10 +13,8 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    // Convert request body to ArrayBuffer
     const body = await req.arrayBuffer()
 
-    // Generate safe filename
     const fileName =
       req.headers
         .get('x-file-name')
@@ -24,7 +23,6 @@ export async function POST(req) {
 
     console.log('Uploading file to Supabase bucket:', fileName)
 
-    // Upload to bucket
     const { data, error } = await supabase.storage
       .from('myphotos')
       .upload(`photos/${fileName}`, new Uint8Array(body), {
@@ -39,9 +37,6 @@ export async function POST(req) {
 
     if (!data?.path) throw new Error('Upload failed: no path returned')
 
-    console.log('Upload succeeded. Path:', data.path)
-
-    // Get public URL
     const { data: publicData, error: publicError } = supabase.storage
       .from('myphotos')
       .getPublicUrl(data.path)
@@ -50,8 +45,6 @@ export async function POST(req) {
       console.error('Public URL error:', publicError)
       throw publicError
     }
-
-    console.log('Public URL:', publicData.publicUrl)
 
     return new Response(JSON.stringify({ url: publicData.publicUrl }), {
       status: 200,

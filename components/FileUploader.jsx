@@ -17,12 +17,11 @@ export default function FileUploader() {
     try {
       const res = await fetch('/api/photos/upload', {
         method: 'POST',
-        body: file.arrayBuffer ? await file.arrayBuffer() : file,
+        body: await file.arrayBuffer(),
         headers: { 'x-file-name': file.name },
       })
 
-      const text = await res.text()
-      const data = text ? JSON.parse(text) : {}
+      const data = await res.json()
 
       if (data.error) {
         setResult(`Upload Failed: ${data.error}`)
